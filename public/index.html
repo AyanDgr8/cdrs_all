@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALL CDR</title>
+  <!-- Favicon so the tab shows the same logo -->
+  <link rel="icon" type="image/png" href="/uploads/MultyLogo.png" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+  />
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Font Awesome for spinner icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    body { background: #fff; }
+    /* Reduce global paddings */
+    .container { padding: 0.25rem; }
+    .box, .p-4 { padding: 0.5rem !important; }
+    .column { padding: 0.5rem !important; }
+    #filtersBox { padding: 0.5rem !important; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    #resultTable {
+      border-collapse: collapse;
+    }
+    #resultTable th, #resultTable td {
+      font-size: 0.8rem;
+      border: 1px solid #ddd;
+      padding: 0.25rem 0.5rem;
+    }
+
+    
+    /* Virtual scrolling and load more styling */
+    .is-loading-more {
+      padding: 1rem;
+      text-align: center;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+    }
+    
+    .is-loading-more span {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+      color: #555;
+    }
+    
+    #load-more-btn {
+      transition: all 0.3s ease;
+    }
+    
+    #load-more-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .is-hidden { display: none !important; }
+    .cluster-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 0;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+    /* Compact styling for status/error/loading messages */
+    #loading,
+    #errorBox,
+    #stats {
+      padding: 0.25rem 0.5rem !important;
+      font-size: 0.75rem !important;
+    }
+    /* Center the Reports title horizontally */
+    .headingg {
+      position:absolute;
+      top:25px;
+      left:50%;
+      transform:translateX(-50%);
+      text-align:center;
+      text-transform:uppercase;
+      color:#EF6F53;
+      z-index:2;
+    }
+
+
+    /* Custom fetch button color */
+    .btn-fetch {
+      background-color: #1976d2 !important;
+      border-color: #EF6F53 !important;
+      color: #fff;
+      padding: 0.1rem !important;
+      font-size: 0.8rem !important;
+      margin-top:-0.5rem;
+    }
+
+
+    /* Hover effect for Fetch Report button (when enabled) */
+    .btn-fetch:hover:not([disabled]) {
+      background-color: #EF6F53 !important; /* slightly darker blue */
+      border-color: #1976d2 !important;
+      color: #fff !important;
+    }
+
+
+    /* Hover effect for Download CSV button */
+    #csvBtn {
+      background-color: #EF6F53 !important;
+      border-color: #1976d2 !important;
+      color: #fff;
+      padding: 0.1rem !important;
+      font-size: 0.8rem !important;
+      margin-top:-0.5rem;
+    }
+
+
+    #csvBtn:hover {
+      background-color: #1976d2 !important;
+      color: #fff !important;
+      border-color: #EF6F53 !important;
+      font-size: 0.8rem !important;
+    }
+
+
+     /* Active filter styling - blue color for active filters */
+    .filter-active {
+      background-color: #1976d2 !important;
+      border-color: #EF6F53 !important;
+      color: white !important;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+
+
+
+    .account-row .label.is-small {
+      font-size: 0.75rem;
+      padding: 0.1rem 0.25rem;
+    }
+    .account-row input.is-small {
+      font-size: 0.75rem;
+      padding: 0.1rem 0.25rem;
+    }
+    /* Layout: form uses 30 % of the viewport height; table 50 % */
+    #filterForm{
+      max-height:40vh;   /* 30 % of screen height */
+      overflow-y:auto;   /* scroll if it grows taller */
+    }
+    .table-container{
+      max-height:37.5vh;   /* 50 % of screen height */
+      overflow-y:auto;   /* scroll the table body */
+    }
+
+
+    /* --- Filter form compact spacing --- */
+    #filterForm .column{
+      padding-top:0.25rem !important;
+      padding-bottom:0.25rem !important;
+    }
+    #filterForm .field{
+      margin-bottom:0.25rem !important;
+    }
+    /* Smaller labels for datetime inputs (labels that are not .is-small) */
+    #filterForm .label:not(.is-small){
+      font-size:0.8rem;
+      margin-bottom:0.1rem;
+    }
+
+
+    /* --- Sticky table header --- */
+    #resultTable thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3; /* above body rows */
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* gradient background */
+      color: white; /* white text for better contrast */
+      font-weight: bold;
+    }
+    
+    /* Help icon on labels */
+    .label.is-small {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem; /* space between text and icon */
+    }
+
+    .label .help-icon {
+      font-size: 0.9rem;          /* slightly smaller than label text */
+      color: #9aa0a6;             /* subtle gray */
+      cursor: help;               /* indicates tooltip/help */
+      vertical-align: middle;
+      line-height: 1;
+      opacity: 0.9;
+      margin-left: 0.2rem;
+      transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .label .help-icon:hover,
+    .label .help-icon:focus {
+      color: #1976d2;             /* your blue */
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    .label .help-icon i {
+      line-height: 1;             /* keep icon snug vertically */
+    }
+
+    /* Custom tooltip styling */
+    .help-icon {
+      position: relative;
+    }
+
+    .help-icon::after {
+      content: attr(title);
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .help-icon::before {
+      content: '';
+      position: absolute;
+      bottom: 115%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #333;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      z-index: 1000;
+    }
+
+    .help-icon:hover::after,
+    .help-icon:hover::before {
+      opacity: 1;
+      visibility: visible;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-row">
+      <img src="/uploads/logo.webp" alt="Logo" width="250" />
+      <h1 class="title is-4">Contact Center Report — <span id="tenantLabel">Loading…</span></h1>
+    </div>
+
+
+    <form id="filterForm" class="box p-4">
+
+
+      <div class="columns is-variable is-2">
+        <div class="column">
+          <label class="label">Start datetime</label>
+          <input id="start" class="input" type="datetime-local" required />
+        </div>
+        <div class="column">
+          <label class="label">End datetime</label>
+          <input id="end" class="input" type="datetime-local" required />
+        </div>
+        <div class="column is-narrow">
+          <label class="label">Timezone</label>
+          <div class="control">
+            <div class="select">
+              <select id="timezoneSelect">
+                <option value="UTC">🌐 UTC (UTC+0)</option>
+                <option value="Asia/Dubai">🇦🇪 Dubai (UTC+4)</option>
+                <option value="Asia/Kolkata">🇮🇳 India (UTC+5:30)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Filters -->
+      <div class="columns is-multiline">
+        <div class="column is-3">
+          <div class="field">
+            <label class="label is-small">
+              Contact Number
+              <span class="help-icon" title="Search by caller or callee number" aria-label="Search by caller or callee number">
+                <i class="fas fa-circle-info"></i>
+              </span>
+            </label>
+            <div class="control">
+              <input id="contact_number" class="input is-small" type="text" placeholder="Enter number" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-3">
+          <div class="field">
+            <label class="label is-small">Call Direction</label>
+            <div class="control">
+              <div class="select is-small is-fullwidth">
+                <select id="call_direction">
+                  <option value="">All</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-3">
+          <div class="field">
+            <label class="label is-small">Trunk ID</label>
+            <div class="control">
+              <div class="select is-small is-fullwidth">
+                <select id="trunk_id">
+                  <option value="">All</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field has-text-centered">
+        <button id="fetchBtn" type="submit" class="button is-primary btn-fetch">Fetch Reports</button>
+      </div>
+    </form>
+
+
+    <div id="loading" class="notification is-info is-light is-hidden">
+      <span class="icon"><i class="fas fa-spinner fa-spin"></i></span>
+      Loading… Please wait.
+    </div>
+    <div id="errorBox" class="notification is-danger is-light is-hidden"></div>
+
+    <!-- Record count / summary bar -->
+    <div id="stats" class="notification is-primary is-light is-hidden"></div>
+
+    <!-- Clustered pagination controls -->
+    <div id="clusterNav" class="is-hidden cluster-nav-bar">
+      <button id="clusterFirst" class="button is-small is-light" title="First page">&laquo;</button>
+      <button id="clusterPrev" class="button is-small is-info is-outlined" disabled>&lsaquo; Prev</button>
+      <span id="clusterPageInfo" style="font-weight:600;">Page 1 of 1</span>
+      <button id="clusterNext" class="button is-small is-info is-outlined" disabled>Next &rsaquo;</button>
+      <button id="clusterLast" class="button is-small is-light" title="Last page">&raquo;</button>
+      <span style="margin-left:8px;">Go to:</span>
+      <input id="clusterPageJump" type="number" min="1" max="1" value="1" class="input is-small" style="width:60px;text-align:center;" />
+      <span style="margin-left:8px;">Rows/page:</span>
+      <div class="select is-small">
+        <select id="pageSizeSelect">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+        </select>
+      </div>
+      <span id="clusterRecordInfo" style="margin-left:8px;color:#555;"></span>
+    </div>
+
+    <div class="table-container">
+      <table id="resultTable" class="table is-fullwidth is-striped is-hoverable"></table>
+    </div>
+
+    <!-- Bottom pagination (mirrors top) -->
+    <div id="clusterNavBottom" style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;flex-wrap:wrap;font-size:0.8rem;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button id="clusterPrevBottom" class="button is-small is-info is-outlined" disabled>&lsaquo; Prev</button>
+        <button id="clusterNextBottom" class="button is-small is-info is-outlined" disabled>Next &rsaquo;</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="csvBtn" class="button is-small is-link is-light" disabled>Download CSV</button>
+      </div>
+    </div>
+
+    <div class="mt-1 has-text-centered">Copyright @ 2025. All Rights Reserved by Multycomm</div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.2/build/global/luxon.min.js"></script>
+  <script src="final-report.js?v=20260401-1647"></script>
+</body>
+</html>

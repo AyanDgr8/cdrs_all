@@ -1,0 +1,16 @@
+{
+  "serviceStarted": "2026-04-02T08:32:18.918Z",
+  "status": "stopped",
+  "config": {
+    "intervalMinutes": 5,
+    "lookbackHours": 1
+  },
+  "lastUpdated": "2026-04-02T08:57:30.400Z",
+  "lastRun": "2026-04-02T08:52:37.885Z",
+  "duration": "3.50s",
+  "newRawRecords": 59,
+  "finalReportInserted": 21,
+  "nextRun": "2026-04-02T08:57:37.886Z",
+  "reason": "SIGINT received",
+  "error": "Unknown database 'cdr_all_db'"
+}
